@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  name              String
+  email             String    @unique
+  password          String
+  role              String
+  active            Boolean   @default(true)
+  lastLogin         DateTime?
+  resetToken        String?
+  resetTokenExpires DateTime?
+  dayCloses         DayClose[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  @@map("users")
+}
+
+model Party {
+  id               Int       @id @default(autoincrement())
+  partyName        String
+  accountNumber    String    @unique
+  address          String
+  mobile1          String
+  mobile2          String?
+  reference        String?
+  referenceMobile1 String?
+  referenceMobile2 String?
+  loans          Loan[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+
+model Loan {
+  id               Int       @id @default(autoincrement())
+  partyId          Int
+  party           Party     @relation(fields: [partyId], references: [id])
+  loanDate         DateTime
+  loanAmount       Float
+  balanceAmount    Float
+  interest         Float
+  balanceInterest  Float
+  totalInterestAmount Float @default(0)
+  entries          Entry[]
+  deletedAt        DateTime? // Soft delete
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([deletedAt])
+}
+
+model Entry {
+  id               Int       @id @default(autoincrement())
+
+  loanId           Int
+  loan             Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  entryDate        DateTime
+  balanceAmount    Float
+  interestAmount   Float
+
+  receivedDate     DateTime?
+  receivedAmount   Float?
+  receivedInterest Float?
+
+  deletedAt        DateTime? // Soft delete
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([deletedAt])
+}
+
+model DayClose {
+  id        Int      @id @default(autoincrement())
+  closedAt  DateTime @map("closed_at")
+  createdBy Int      @map("created_by")
+  user      User     @relation(fields: [createdBy], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([closedAt])
+  @@map("day_closes")
+}
