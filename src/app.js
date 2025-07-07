@@ -31,7 +31,7 @@ app.use(
 const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
 const allowedOrigins = allowedOriginsEnv
   ? allowedOriginsEnv.split(",")
-  : ["http://localhost:5173"];
+  : ["http://localhost:5173", "http://18.138.7.88"];
 
 app.use(
   cors({
