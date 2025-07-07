@@ -48,6 +48,12 @@ app.use(
   })
 );
 
+const corsOptions = {
+  origin: "*", // Specify the origin of your frontend application
+  credentials: true, // This allows cookies and credentials to be included in the requests
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
