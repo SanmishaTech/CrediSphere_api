@@ -54,9 +54,9 @@ app.use(express.urlencoded({ extended: true }));
 const frontendDistPath =
   process.env.NODE_ENV === "production"
     ? process.env.FRONTEND_PATH ||
-      path.resolve(__dirname, "..", "..", "register", "frontend", "dist")
-    : path.resolve(__dirname, "..", "..", "register", "backend", "dist");
-
+      path.resolve(__dirname, "..", "..", "CrediSphere", "dist")
+    : path.resolve(__dirname, "..", "..", "CrediSphere_api", "dist");
+console.log(frontendDistPath);
 console.log(`Frontend build path: ${frontendDistPath}`);
 
 console.log(`Serving frontend static files from: ${frontendDistPath}`);
