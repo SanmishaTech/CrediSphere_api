@@ -314,6 +314,7 @@ const getMonthlySummary = asyncHandler(async (req, res) => {
         loanAmount: 0,
         receivedAmount: 0,
         receivedInterest: 0,
+        totalPendingInterest: loan.balanceInterest,
         receivedDate: null,
       };
     }
@@ -328,6 +329,7 @@ const getMonthlySummary = asyncHandler(async (req, res) => {
           loanAmount: 0,
           receivedAmount: 0,
           receivedInterest: 0,
+          totalPendingInterest: loan.balanceInterest,
           receivedDate: null,
         };
       }
