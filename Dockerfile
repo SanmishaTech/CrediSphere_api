@@ -1,36 +1,53 @@
-# Stage 1: Builder - Install all dependencies and generate Prisma Client
+# CrediSphere API Dockerfile
+# Multi-stage build for optimized production image
+
 FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-# Copy package files and install all dependencies (including dev for prisma)
+# Copy package files
 COPY package*.json ./
-RUN npm install
 
-# Copy prisma schema and generate the client
-COPY prisma ./prisma
-RUN npx prisma generate
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci
 
-# Stage 2: Production - Create the final lean image
-FROM node:20-alpine
-WORKDIR /app
-
-# Copy package files and install only production dependencies
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Copy the application source code, including the server, src, and dist folders
+# Copy source code
 COPY . .
 
-# Copy the generated Prisma Client from the builder stage
-# This ensures the client is available in the final image
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Generate Prisma client
+RUN npx prisma generate
 
-# The application expects an 'uploads' directory to exist.
-# This command creates it so the app doesn't fail on startup.
-RUN mkdir -p uploads
+# Production stage
+FROM node:20-alpine AS production
 
-# Expose the port the app runs on
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app .
+
+# Switch to non-root user
+USER nodejs
+
+# Expose API port
 EXPOSE 3000
 
-# The command to start the application
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start the server with dumb-init
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "server.js"]
