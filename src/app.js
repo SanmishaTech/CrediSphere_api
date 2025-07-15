@@ -80,42 +80,42 @@ app.use("/api/recycle-bin", recycleBinRoutes);
 app.use("/api/day-closes", dayCloseRoutes);
 app.use(swaggerRouter);
 
-// app.get("*", (req, res, next) => {
-//   if (req.path.startsWith("/api/") || req.path.includes(".")) {
-//     return next();
-//   }
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/") || req.path.includes(".")) {
+    return next();
+  }
 
-//   // Only serve frontend if SERVE_FRONTEND is enabled
-//   if (process.env.SERVE_FRONTEND === 'true') {
-//     const frontendDistPath =
-//       process.env.NODE_ENV === "production"
-//         ? process.env.FRONTEND_PATH ||
-//           path.resolve(__dirname, "..", "..", "CrediSphere", "dist")
-//         : path.resolve(__dirname, "..", "..", "CrediSphere_api", "dist");
+  // Only serve frontend if SERVE_FRONTEND is enabled
+  if (process.env.SERVE_FRONTEND === 'true') {
+    const frontendDistPath =
+      process.env.NODE_ENV === "production"
+        ? process.env.FRONTEND_PATH ||
+          path.resolve(__dirname, "..", "..", "CrediSphere", "dist")
+        : path.resolve(__dirname, "..", "..", "CrediSphere_api", "dist");
     
-//     const indexPath = path.join(frontendDistPath, "index.html");
-//     res.sendFile(indexPath, (err) => {
-//       if (err) {
-//         if (err.code === "ENOENT") {
-//           res
-//             .status(404)
-//             .send(
-//               "Frontend entry point (index.html) not found. Ensure the frontend is built and paths are correctly configured."
-//             );
-//         } else {
-//           res
-//             .status(500)
-//             .send(
-//               "An error occurred while trying to serve the frontend application."
-//             );
-//         }
-//       }
-//     });
-//   } else {
-//     // API-only mode - return 404 for non-API routes
-//     next();
-//   }
-// });
+    const indexPath = path.join(frontendDistPath, "index.html");
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        if (err.code === "ENOENT") {
+          res
+            .status(404)
+            .send(
+              "Frontend entry point (index.html) not found. Ensure the frontend is built and paths are correctly configured."
+            );
+        } else {
+          res
+            .status(500)
+            .send(
+              "An error occurred while trying to serve the frontend application."
+            );
+        }
+      }
+    });
+  } else {
+    // API-only mode - return 404 for non-API routes
+    next();
+  }
+});
 
 app.use((req, res, next) => {
   if (res.headersSent) {
