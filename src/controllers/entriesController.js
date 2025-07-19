@@ -6,6 +6,7 @@ const createError = require("http-errors");
 /**
  * Calculate and update loan balances based on received payments
  * This function handles the complex logic of updating balance amounts and interest
+ * with validation for received interest and amount limits
  */
 const calculateUpdatedLoanBalances = (loan, receivedAmount = 0, receivedInterest = 0) => {
   const currentBalanceAmount = loan.balanceAmount;
@@ -21,18 +22,38 @@ const calculateUpdatedLoanBalances = (loan, receivedAmount = 0, receivedInterest
   // Total interest due before applying the received payment
   const totalInterestBeforePayment = currentBalanceInterest + newInterestAmount;
   
+  // Validate and adjust received interest - cannot exceed total interest due
+  let adjustedReceivedInterest = receivedInterest;
+  let adjustedReceivedAmount = receivedAmount;
+  
+  if (receivedInterest > totalInterestBeforePayment) {
+    // If received interest exceeds total interest due, cap it and add remainder to received amount
+    const excessInterest = receivedInterest - totalInterestBeforePayment;
+    adjustedReceivedInterest = totalInterestBeforePayment;
+    adjustedReceivedAmount = receivedAmount + excessInterest;
+  }
+  
+  // Validate received amount - cannot exceed current balance amount
+  if (adjustedReceivedAmount > currentBalanceAmount) {
+    throw new Error(`Received amount (₹${adjustedReceivedAmount.toFixed(2)}) cannot exceed current balance amount (₹${currentBalanceAmount.toFixed(2)})`);
+  }
+  
   // Apply received interest payment against the total interest due
-  const remainingBalanceInterest = Math.max(0, totalInterestBeforePayment - receivedInterest);
+  const remainingBalanceInterest = Math.max(0, totalInterestBeforePayment - adjustedReceivedInterest);
   
   // Apply received amount payment to principal
-  const newBalanceAmount = Math.max(0, currentBalanceAmount - receivedAmount);
+  const newBalanceAmount = Math.max(0, currentBalanceAmount - adjustedReceivedAmount);
   
   return {
     newBalanceAmount,
     newBalanceInterest: remainingBalanceInterest,
     interestAmount: newInterestAmount,
     totalInterestBeforePayment,
-    interestOnBalance
+    interestOnBalance,
+    adjustedReceivedInterest,
+    adjustedReceivedAmount,
+    originalReceivedInterest: receivedInterest,
+    originalReceivedAmount: receivedAmount
   };
 };
 
@@ -174,7 +195,7 @@ const createEntry = asyncHandler(async (req, res) => {
 
   // Use transaction to ensure data consistency
   const result = await prisma.$transaction(async (prisma) => {
-    // Create the entry with calculated values
+    // Create the entry with calculated values (using adjusted amounts)
     const entry = await prisma.entry.create({
       data: {
         ...data,
@@ -182,6 +203,8 @@ const createEntry = asyncHandler(async (req, res) => {
         interestAmount: calculations.interestAmount, // New interest for this period
         entryDate: new Date(data.entryDate),
         receivedDate: data.receivedDate ? new Date(data.receivedDate) : undefined,
+        receivedAmount: calculations.adjustedReceivedAmount, // Use adjusted amount
+        receivedInterest: calculations.adjustedReceivedInterest, // Use adjusted interest
       },
     });
 
@@ -191,11 +214,22 @@ const createEntry = asyncHandler(async (req, res) => {
       data: {
         balanceAmount: calculations.newBalanceAmount,
         balanceInterest: calculations.newBalanceInterest,
-        totalInterestAmount: { increment: receivedInterest },
+        totalInterestAmount: { increment: calculations.adjustedReceivedInterest },
       },
     });
 
-    return entry;
+    return {
+      ...entry,
+      // Include adjustment information in response
+      adjustments: {
+        interestAdjusted: calculations.originalReceivedInterest !== calculations.adjustedReceivedInterest,
+        amountAdjusted: calculations.originalReceivedAmount !== calculations.adjustedReceivedAmount,
+        originalReceivedInterest: calculations.originalReceivedInterest,
+        adjustedReceivedInterest: calculations.adjustedReceivedInterest,
+        originalReceivedAmount: calculations.originalReceivedAmount,
+        adjustedReceivedAmount: calculations.adjustedReceivedAmount
+      }
+    };
   });
 
   res.status(201).json(result);
