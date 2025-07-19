@@ -214,6 +214,7 @@ const getLoanDetailsForEntry = asyncHandler(async (req, res) => {
       interest: true,
       balanceInterest: true,
       loanDate: true,
+      startDate: true,
     },
   });
 
@@ -228,21 +229,23 @@ const getLoanDetailsForEntry = asyncHandler(async (req, res) => {
   // Pending interest after adding this period's interest
   const totalInterestAfterNewPeriod = loan.balanceInterest + newInterestAmount;
 
-  // Determine next suggested entry date: 30 days after the most recent entry (or loan date if no entries)
+  // Determine next suggested entry date: next month same date after the most recent entry (or start date if no entries)
   const latestEntry = await prisma.entry.findFirst({
     where: { loanId },
     orderBy: { entryDate: "desc" },
     select: { entryDate: true },
   });
 
-  const baseDate = latestEntry?.entryDate ?? loan.loanDate;
-  const nextEntryDate = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const baseDate = latestEntry?.entryDate ?? loan.startDate;
+  const nextEntryDate = new Date(baseDate);
+  nextEntryDate.setMonth(nextEntryDate.getMonth() + 1);
+  const nextEntryDateISO = nextEntryDate.toISOString();
 
   res.json({
     ...loan,
     calculatedInterestAmount: newInterestAmount,
     totalPendingInterest: totalInterestAfterNewPeriod,
-    nextEntryDate,
+    nextEntryDate: nextEntryDateISO,
   });
 });
 

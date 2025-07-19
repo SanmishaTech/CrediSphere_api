@@ -143,6 +143,8 @@ const createLoan = asyncHandler(async (req, res) => {
     balanceAmount: z.number().nonnegative().optional(),
     interest: z.number({ required_error: "interest is required" }).nonnegative(),
     balanceInterest: z.number({ required_error: "balanceInterest is required" }).nonnegative(),
+    // startDate is optional - will default to current date if not provided
+    startDate: z.coerce.date().optional(),
   });
 
   const validatedData = await schema.parseAsync(req.body);
@@ -152,7 +154,8 @@ const createLoan = asyncHandler(async (req, res) => {
       ...validatedData,
       // Set balance amount to loan amount if not provided or if they should be equal
       balanceAmount: validatedData.balanceAmount ?? validatedData.loanAmount,
-      loanDate: new Date(validatedData.loanDate), // Ensure JS Date
+      loanDate: new Date(validatedData.loanDate), // Store the original loan date
+      startDate: validatedData.startDate ? new Date(validatedData.startDate) : new Date(), // Start date defaults to current date
       totalInterestAmount: validatedData.balanceInterest
     },
   });
@@ -169,6 +172,7 @@ const updateLoan = asyncHandler(async (req, res) => {
     .object({
       partyId: z.number().int().positive().optional(),
       loanDate: z.coerce.date().optional(),
+      startDate: z.coerce.date().optional(),
       loanAmount: z.number().positive().optional(),
       balanceAmount: z.number().nonnegative().optional(),
       interest: z.number().nonnegative().optional(),
@@ -187,6 +191,7 @@ const updateLoan = asyncHandler(async (req, res) => {
   const updateData = {};
   if (req.body.partyId !== undefined) updateData.partyId = req.body.partyId;
   if (req.body.loanDate !== undefined) updateData.loanDate = new Date(req.body.loanDate);
+  if (req.body.startDate !== undefined) updateData.startDate = new Date(req.body.startDate);
   if (req.body.loanAmount !== undefined) updateData.loanAmount = req.body.loanAmount;
   if (req.body.balanceAmount !== undefined) updateData.balanceAmount = req.body.balanceAmount;
   if (req.body.interest !== undefined) updateData.interest = req.body.interest;

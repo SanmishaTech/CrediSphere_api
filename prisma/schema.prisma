@@ -44,6 +44,7 @@ model Loan {
   partyId          Int
   party           Party     @relation(fields: [partyId], references: [id])
   loanDate         DateTime
+  startDate        DateTime  @default(now()) // When the loan actually starts
   loanAmount       Float
   balanceAmount    Float
   interest         Float
