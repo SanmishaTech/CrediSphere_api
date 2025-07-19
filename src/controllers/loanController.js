@@ -59,12 +59,21 @@ const getLoans = asyncHandler(async (req, res) => {
     AND: [
       // Exclude soft-deleted loans
       { deletedAt: null },
-      // Search in party name if search term is provided
+      // Search in party name or account number if search term is provided
       search ? {
         party: {
-          partyName: {
-            contains: search
-          }
+          OR: [
+            {
+              partyName: {
+                contains: search
+              }
+            },
+            {
+              accountNumber: {
+                contains: search
+              }
+            }
+          ]
         }
       } : {},
       // Filter by partyId if provided
