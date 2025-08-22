@@ -51,11 +51,18 @@ model Loan {
   balanceInterest  Float
   totalInterestAmount Float @default(0)
   entries          Entry[]
+  
+  // Account closure fields
+  isClosed         Boolean   @default(false)
+  closedAt         DateTime?
+  closedAmount     Float?    // Total amount given at closure
+  
   deletedAt        DateTime? // Soft delete
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([deletedAt])
+  @@index([isClosed])
 }
 
 model Entry {

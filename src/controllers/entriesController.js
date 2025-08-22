@@ -249,6 +249,7 @@ const getLoanDetailsForEntry = asyncHandler(async (req, res) => {
       balanceInterest: true,
       loanDate: true,
       startDate: true,
+      isClosed: true,
     },
   });
 

@@ -379,6 +379,70 @@ const getMonthlySummary = asyncHandler(async (req, res) => {
   });
 });
 
+// POST /api/loans/close-account
+const closeAccount = asyncHandler(async (req, res) => {
+  const { loanId, totalAmountGiven } = req.body;
+
+  // Validate input
+  const schema = z.object({
+    loanId: z.number().positive("Loan ID must be a positive number"),
+    totalAmountGiven: z.number().min(0, "Total amount must be non-negative"),
+  });
+
+  try {
+    const validatedData = schema.parse(req.body);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        errors: error.errors.reduce((acc, err) => {
+          acc[err.path.join('.')] = err.message;
+          return acc;
+        }, {})
+      });
+    }
+  }
+
+  // Check if loan exists and is not already closed
+  const existingLoan = await prisma.loan.findFirst({
+    where: {
+      id: loanId,
+      deletedAt: null,
+    },
+  });
+
+  if (!existingLoan) {
+    return res.status(404).json({ 
+      errors: { message: "Loan not found" }
+    });
+  }
+
+  if (existingLoan.isClosed) {
+    return res.status(400).json({ 
+      errors: { message: "This loan account is already closed" }
+    });
+  }
+
+  // Close the loan account
+  const closedLoan = await prisma.loan.update({
+    where: { id: loanId },
+    data: {
+      isClosed: true,
+      closedAt: new Date(),
+      closedAmount: totalAmountGiven,
+      balanceAmount: 0,
+      balanceInterest: 0,
+    },
+    include: {
+      party: true,
+    },
+  });
+
+  res.json({
+    message: "Account closed successfully",
+    loan: closedLoan,
+  });
+});
+
 module.exports = {
   getLoans,
   getLoan,
@@ -386,4 +450,5 @@ module.exports = {
   updateLoan,
   deleteLoan,
   getMonthlySummary,
+  closeAccount,
 };

@@ -113,6 +113,40 @@ router.post("/", auth, loanController.createLoan);
 
 /**
  * @swagger
+ * /loans/close-account:
+ *   post:
+ *     summary: Close a loan account
+ *     tags: [Loans]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - loanId
+ *               - totalAmountGiven
+ *             properties:
+ *               loanId:
+ *                 type: integer
+ *                 description: ID of the loan to close
+ *               totalAmountGiven:
+ *                 type: number
+ *                 description: Total amount given to close the account
+ *     responses:
+ *       200:
+ *         description: Account closed successfully
+ *       400:
+ *         description: Invalid request or account already closed
+ *       404:
+ *         description: Loan not found
+ */
+router.post("/close-account", auth, loanController.closeAccount);
+
+/**
+ * @swagger
  * /loans/{id}:
  *   put:
  *     summary: Update a loan by ID
